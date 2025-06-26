@@ -157,9 +157,8 @@
                 
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'alphabet-challenge-default';
                 
-                // This check is now more robust.
-                if (!firebaseConfig.apiKey) {
-                    console.warn("Firebase config is missing. Admin Panel will not work.");
+                if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("AIzaSyB4g-...")) {
+                    console.warn("Firebase config is missing or incomplete. Admin Panel will not work.");
                     document.body.innerHTML = '<h1 class="fft-title text-center text-2xl">Firebase configuration is missing in panel.html.</h1>';
                     return;
                 }
@@ -203,7 +202,6 @@
         async function loadQuestions() {
             const querySnapshot = await getDocs(questionsCollectionRef);
             
-            // ** FIX: Check if the database is empty **
             if (querySnapshot.empty) {
                 questionList.innerHTML = `
                     <p class="mb-4">No questions found in the database.</p>
@@ -234,7 +232,6 @@
             });
         }
         
-        // ** NEW: Function to create the first set of questions **
         async function createInitialQuestions() {
             const btn = document.getElementById('create-questions-btn');
             btn.textContent = 'Creating...';
