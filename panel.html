@@ -48,6 +48,7 @@
             color: var(--fft-gold);
             font-family: 'IM Fell English SC', serif;
             transition: all 0.2s ease;
+            cursor: pointer;
         }
         .fft-button:hover:not(:disabled) {
             background-color: var(--fft-gold);
@@ -108,7 +109,7 @@
                 <h2 class="text-2xl fft-title">Question Editor</h2>
                 <button id="save-questions-btn" class="py-2 px-5 text-lg fft-button">Save All Questions</button>
             </div>
-            <div id="question-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+            <div id="question-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4 text-center">
                 <!-- Questions will be loaded here -->
                 <p id="loading-questions">Loading questions...</p>
             </div>
@@ -132,7 +133,6 @@
         const messageInput = document.getElementById('message-input');
         const saveConfigBtn = document.getElementById('save-config-btn');
         const questionList = document.getElementById('question-list');
-        const loadingQuestions = document.getElementById('loading-questions');
         const saveQuestionsBtn = document.getElementById('save-questions-btn');
         const statusMessage = document.getElementById('status-message');
 
@@ -144,28 +144,27 @@
         // --- FIREBASE SETUP ---
         async function setupFirebase() {
             try {
+                // ** FIX: Corrected the firebaseConfig object syntax. **
                 const firebaseConfig = {
-                    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyB4g-...",
-  authDomain: "fftalphabet.firebaseapp.com",
-  projectId: "fftalphabet",
-  storageBucket: "fftalphabet.appspot.com",
-  messagingSenderId: "525977718690",
-  appId: "1:525977718690:web:e0b9e9fe82f7e802c1f257",
-  measurementId: "G-Y9ELMKA8TR"
-};
+                  apiKey: "AIzaSyB4g-...", // Replace with your actual API key
+                  authDomain: "fftalphabet.firebaseapp.com",
+                  projectId: "fftalphabet",
+                  storageBucket: "fftalphabet.appspot.com",
+                  messagingSenderId: "525977718690",
+                  appId: "1:525977718690:web:e0b9e9fe82f7e802c1f257",
+                  measurementId: "G-Y9ELMKA8TR"
+                };
                 
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'alphabet-challenge-default';
-                const finalConfig = Object.keys(firebaseConfig).length > 0 ? firebaseConfig : JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-
-                if (Object.keys(finalConfig).length === 0) {
+                
+                // This check is now more robust.
+                if (!firebaseConfig.apiKey) {
                     console.warn("Firebase config is missing. Admin Panel will not work.");
-                    document.body.innerHTML = '<h1 class="fft-title text-center text-2xl">Firebase configuration is missing.</h1>';
+                    document.body.innerHTML = '<h1 class="fft-title text-center text-2xl">Firebase configuration is missing in panel.html.</h1>';
                     return;
                 }
                 
-                const app = initializeApp(finalConfig);
+                const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 const auth = getAuth(app);
                 
@@ -203,15 +202,24 @@ const firebaseConfig = {
 
         async function loadQuestions() {
             const querySnapshot = await getDocs(questionsCollectionRef);
+            
+            // ** FIX: Check if the database is empty **
+            if (querySnapshot.empty) {
+                questionList.innerHTML = `
+                    <p class="mb-4">No questions found in the database.</p>
+                    <button id="create-questions-btn" class="py-2 px-5 text-lg fft-button">Create Initial Question Set</button>
+                `;
+                document.getElementById('create-questions-btn').addEventListener('click', createInitialQuestions);
+                return;
+            }
+
             let questions = [];
             querySnapshot.forEach(doc => {
                 questions.push({ id: doc.id, ...doc.data() });
             });
 
-            // Sort A-Z
-            questions.sort((a, b) => a.id.localeCompare(b.id));
+            questions.sort((a, b) => a.letter.localeCompare(b.letter));
 
-            loadingQuestions.remove();
             questionList.innerHTML = ''; // Clear list
 
             questions.forEach(q => {
@@ -224,6 +232,59 @@ const firebaseConfig = {
                 `;
                 questionList.appendChild(div);
             });
+        }
+        
+        // ** NEW: Function to create the first set of questions **
+        async function createInitialQuestions() {
+            const btn = document.getElementById('create-questions-btn');
+            btn.textContent = 'Creating...';
+            btn.disabled = true;
+
+            const defaultQuestions = [
+                { letter: 'a', question: 'STARTS WITH A: A fruit that is typically red or green.', answer: 'apple'},
+                { letter: 'b', question: 'STARTS WITH B: A yellow fruit monkeys love.', answer: 'banana'},
+                { letter: 'c', question: 'STARTS WITH C: A vehicle for transport.', answer: 'car'},
+                { letter: 'd', question: 'STARTS WITH D: A loyal pet.', answer: 'dog'},
+                { letter: 'e', question: 'STARTS WITH E: The planet we live on.', answer: 'earth'},
+                { letter: 'f', question: 'STARTS WITH F: What fire produces.', answer: 'flame'},
+                { letter: 'g', question: 'STARTS WITH G: The color of grass.', answer: 'green'},
+                { letter: 'h', question: 'STARTS WITH H: A place where people live.', answer: 'house'},
+                { letter: 'i', question: 'STARTS WITH I: A frozen dessert.', answer: 'ice cream'},
+                { letter: 'j', question: 'STARTS WITH J: A sweet fruit spread.', answer: 'jam'},
+                { letter: 'k', question: 'STARTS WITH K: Used to open a lock.', answer: 'key'},
+                { letter: 'l', question: 'STARTS WITH L: King of the jungle.', answer: 'lion'},
+                { letter: 'm', question: 'STARTS WITH M: Earth\'s natural satellite.', answer: 'moon'},
+                { letter: 'n', question: 'STARTS WITH N: Opposite of day.', answer: 'night'},
+                { letter: 'o', question: 'STARTS WITH O: A citrus fruit.', answer: 'orange'},
+                { letter: 'p', question: 'STARTS WITH P: A writing instrument.', answer: 'pen'},
+                { letter: 'q', question: 'STARTS WITH Q: A female monarch.', answer: 'queen'},
+                { letter: 'r', question: 'STARTS WITH R: Appears after a storm.', answer: 'rainbow'},
+                { letter: 's', question: 'STARTS WITH S: The star in our solar system.', answer: 'sun'},
+                { letter: 't', question: 'STARTS WITH T: A large woody plant.', answer: 'tree'},
+                { letter: 'u', question: 'STARTS WITH U: Used for rain protection.', answer: 'umbrella'},
+                { letter: 'v', question: 'STARTS WITH V: A stringed instrument.', answer: 'violin'},
+                { letter: 'w', question: 'STARTS WITH W: Essential liquid for life.', answer: 'water'},
+                { letter: 'x', question: 'CONTAINS X: A musical instrument with wooden bars.', answer: 'xylophone'},
+                { letter: 'y', question: 'STARTS WITH Y: The color of the sun.', answer: 'yellow'},
+                { letter: 'z', question: 'STARTS WITH Z: A striped African equine.', answer: 'zebra'}
+            ];
+
+            const batch = writeBatch(db);
+            defaultQuestions.forEach(q => {
+                const docRef = doc(questionsCollectionRef, q.letter);
+                batch.set(docRef, q);
+            });
+
+            try {
+                await batch.commit();
+                showStatusMessage('Initial questions created!');
+                loadQuestions(); // Reload the questions to display them
+            } catch (error) {
+                console.error("Error creating initial questions:", error);
+                showStatusMessage('Error creating questions!', true);
+                btn.textContent = 'Try Again';
+                btn.disabled = false;
+            }
         }
 
         async function saveConfig() {
@@ -257,7 +318,7 @@ const firebaseConfig = {
             });
 
             for (const id in updates) {
-                const docRef = doc(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'alphabet-challenge-default'}/public/data/questions`, id);
+                const docRef = doc(questionsCollectionRef, id);
                 batch.update(docRef, updates[id]);
             }
 
