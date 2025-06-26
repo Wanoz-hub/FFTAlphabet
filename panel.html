@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alphabet Challenge - Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- Final Fantasy Tactics Theme --- */
+        :root {
+            --fft-blue: #1a2c5a;
+            --fft-gold: #f7d88f;
+            --fft-light-gold: #fff4d5;
+            --fft-parchment: #f0e6d2;
+            --fft-dark-parchment: #d3c6ad;
+        }
+
+        body {
+            font-family: 'IM Fell English SC', serif;
+            background-color: #000;
+            background-image: url('https://www.transparenttextures.com/patterns/old-wall.png');
+            color: var(--fft-parchment);
+            padding: 2rem;
+        }
+        
+        .fft-border {
+            background-color: var(--fft-blue);
+            border: 2px solid var(--fft-gold);
+            box-shadow: 0 0 0 2px var(--fft-blue), inset 0 0 10px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        
+        .fft-title {
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            color: var(--fft-gold);
+            text-shadow: 2px 2px 3px #000;
+        }
+
+        .fft-button {
+            background-color: var(--fft-blue);
+            border: 2px solid var(--fft-gold);
+            border-radius: 4px;
+            color: var(--fft-gold);
+            font-family: 'IM Fell English SC', serif;
+            transition: all 0.2s ease;
+        }
+        .fft-button:hover:not(:disabled) {
+            background-color: var(--fft-gold);
+            color: var(--fft-blue);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            color: var(--fft-light-gold);
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            font-family: 'IM Fell English SC', serif;
+            background-color: rgba(0,0,0,0.3);
+            color: var(--fft-parchment);
+            border: 2px solid var(--fft-dark-parchment);
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--fft-gold);
+            box-shadow: 0 0 0 2px var(--fft-gold);
+        }
+
+        #status-message {
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl text-center mb-8 fft-title">Alphabet Challenge - Admin Panel</h1>
+
+        <!-- Game Configuration Section -->
+        <div class="fft-border mb-8">
+            <h2 class="text-2xl mb-4 fft-title">Game Configuration</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="background-input">Background Image URL</label>
+                    <input type="text" id="background-input" placeholder="https://...">
+                </div>
+                <div>
+                    <label for="message-input">Start Modal Message</label>
+                    <textarea id="message-input" rows="3" placeholder="Welcome, warrior..."></textarea>
+                </div>
+            </div>
+            <button id="save-config-btn" class="mt-4 py-2 px-5 text-lg fft-button">Save Configuration</button>
+        </div>
+
+        <!-- Question Editor Section -->
+        <div class="fft-border">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl fft-title">Question Editor</h2>
+                <button id="save-questions-btn" class="py-2 px-5 text-lg fft-button">Save All Questions</button>
+            </div>
+            <div id="question-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                <!-- Questions will be loaded here -->
+                <p id="loading-questions">Loading questions...</p>
+            </div>
+        </div>
+        
+        <!-- Status Message -->
+        <div id="status-message" class="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-4 rounded-lg shadow-lg opacity-0">
+            Saved successfully!
+        </div>
+
+    </div>
+
+    <script type="module">
+        // --- FIREBASE IMPORTS ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- DOM ELEMENTS ---
+        const backgroundInput = document.getElementById('background-input');
+        const messageInput = document.getElementById('message-input');
+        const saveConfigBtn = document.getElementById('save-config-btn');
+        const questionList = document.getElementById('question-list');
+        const loadingQuestions = document.getElementById('loading-questions');
+        const saveQuestionsBtn = document.getElementById('save-questions-btn');
+        const statusMessage = document.getElementById('status-message');
+
+        // --- FIREBASE STATE ---
+        let db;
+        let configRef;
+        let questionsCollectionRef;
+
+        // --- FIREBASE SETUP ---
+        async function setupFirebase() {
+            try {
+                const firebaseConfig = {
+                    // Your Firebase config object goes here for GitHub Pages
+                };
+                
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'alphabet-challenge-default';
+                const finalConfig = Object.keys(firebaseConfig).length > 0 ? firebaseConfig : JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+
+                if (Object.keys(finalConfig).length === 0) {
+                    console.warn("Firebase config is missing. Admin Panel will not work.");
+                    document.body.innerHTML = '<h1 class="fft-title text-center text-2xl">Firebase configuration is missing.</h1>';
+                    return;
+                }
+                
+                const app = initializeApp(finalConfig);
+                db = getFirestore(app);
+                const auth = getAuth(app);
+                
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Define Firestore references
+                const basePath = `artifacts/${appId}/public/data`;
+                configRef = doc(db, basePath, 'config');
+                questionsCollectionRef = collection(db, basePath, 'questions');
+
+                // Load existing data
+                loadConfig();
+                loadQuestions();
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+            }
+        }
+
+        // --- DATA HANDLING FUNCTIONS ---
+        async function loadConfig() {
+            const docSnap = await getDoc(configRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                backgroundInput.value = data.backgroundImage || '';
+                messageInput.value = data.welcomeMessage || '';
+            } else {
+                console.log("No config document found. You can create one by saving.");
+            }
+        }
+
+        async function loadQuestions() {
+            const querySnapshot = await getDocs(questionsCollectionRef);
+            let questions = [];
+            querySnapshot.forEach(doc => {
+                questions.push({ id: doc.id, ...doc.data() });
+            });
+
+            // Sort A-Z
+            questions.sort((a, b) => a.id.localeCompare(b.id));
+
+            loadingQuestions.remove();
+            questionList.innerHTML = ''; // Clear list
+
+            questions.forEach(q => {
+                const div = document.createElement('div');
+                div.className = 'grid grid-cols-1 md:grid-cols-[2rem_1fr_1fr] gap-4 items-center';
+                div.innerHTML = `
+                    <label class="text-2xl fft-title text-center">${q.letter.toUpperCase()}</label>
+                    <input type="text" data-id="${q.id}" data-field="question" value="${q.question}" placeholder="Question text...">
+                    <input type="text" data-id="${q.id}" data-field="answer" value="${q.answer}" placeholder="Answer...">
+                `;
+                questionList.appendChild(div);
+            });
+        }
+
+        async function saveConfig() {
+            try {
+                await setDoc(configRef, {
+                    backgroundImage: backgroundInput.value,
+                    welcomeMessage: messageInput.value
+                }, { merge: true });
+                showStatusMessage('Configuration saved!');
+            } catch (error) {
+                console.error("Error saving config:", error);
+                showStatusMessage('Error saving config!', true);
+            }
+        }
+
+        async function saveQuestions() {
+            const batch = writeBatch(db);
+            const inputs = questionList.querySelectorAll('input[type="text"]');
+            
+            let updates = {};
+
+            inputs.forEach(input => {
+                const id = input.dataset.id;
+                const field = input.dataset.field;
+                const value = input.value;
+
+                if (!updates[id]) {
+                    updates[id] = {};
+                }
+                updates[id][field] = value;
+            });
+
+            for (const id in updates) {
+                const docRef = doc(db, `artifacts/${typeof __app_id !== 'undefined' ? __app_id : 'alphabet-challenge-default'}/public/data/questions`, id);
+                batch.update(docRef, updates[id]);
+            }
+
+            try {
+                await batch.commit();
+                showStatusMessage('All questions saved!');
+            } catch (error) {
+                console.error("Error saving questions:", error);
+                showStatusMessage('Error saving questions!', true);
+            }
+        }
+
+        function showStatusMessage(message, isError = false) {
+            statusMessage.textContent = message;
+            statusMessage.style.backgroundColor = isError ? '#a83c32' : '#5a8a4d';
+            statusMessage.style.opacity = 1;
+
+            setTimeout(() => {
+                statusMessage.style.opacity = 0;
+            }, 3000);
+        }
+
+        // --- EVENT LISTENERS ---
+        saveConfigBtn.addEventListener('click', saveConfig);
+        saveQuestionsBtn.addEventListener('click', saveQuestions);
+
+        // --- INITIALIZE ---
+        setupFirebase();
+    </script>
+</body>
+</html>
