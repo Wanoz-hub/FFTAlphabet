@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alphabet Challenge - Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { --fft-blue: #1a2c5a; --fft-gold: #f7d88f; --fft-light-gold: #fff4d5; --fft-parchment: #f0e6d2; --fft-dark-parchment: #d3c6ad; --fft-red: #a83c32; }
+        body { font-family: 'IM Fell English SC', serif; background-color: #000; background-image: url('https://www.transparenttextures.com/patterns/old-wall.png'); color: var(--fft-parchment); padding: 2rem; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .container { max-width: 48rem; width: 100%; }
+        .fft-border { background-color: var(--fft-blue); border: 2px solid var(--fft-gold); box-shadow: 0 0 0 2px var(--fft-blue), inset 0 0 10px rgba(0,0,0,0.5); border-radius: 8px; padding: 1.5rem; }
+        .fft-title { font-family: 'Cinzel', serif; font-weight: 700; color: var(--fft-gold); text-shadow: 2px 2px 3px #000; }
+        .fft-button { background-color: var(--fft-blue); border: 2px solid var(--fft-gold); border-radius: 4px; color: var(--fft-gold); font-family: 'IM Fell English SC', serif; transition: all 0.2s ease; cursor: pointer; }
+        .fft-button:hover:not(:disabled) { background-color: var(--fft-gold); color: var(--fft-blue); }
+        .fft-button-secondary { background-color: transparent; border-color: var(--fft-dark-parchment); color: var(--fft-dark-parchment) }
+        .fft-button-secondary:hover { background-color: var(--fft-dark-parchment); color: var(--fft-blue); }
+        label { display: block; margin-bottom: 0.5rem; font-size: 1.1rem; color: var(--fft-light-gold); }
+        input[type="text"], input[type="email"], input[type="password"], textarea { width: 100%; font-family: 'IM Fell English SC', serif; background-color: rgba(0,0,0,0.3); color: var(--fft-parchment); border: 2px solid var(--fft-dark-parchment); border-radius: 4px; padding: 0.5rem; }
+        input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus, textarea:focus { outline: none; border-color: var(--fft-gold); box-shadow: 0 0 0 2px var(--fft-gold); }
+        #status-message { transition: opacity 0.5s ease-in-out; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="login-view">
+            <h1 class="text-4xl text-center mb-8 fft-title">Admin Panel Login</h1>
+            <div class="fft-border">
+                <div class="mb-4"><label for="email-input">Email</label><input type="email" id="email-input" placeholder="admin@example.com"></div>
+                <div class="mb-6"><label for="password-input">Password</label><input type="password" id="password-input" placeholder="••••••••"></div>
+                <button id="signin-btn" class="w-full py-2 px-5 text-lg fft-button">Sign In</button>
+                <p id="login-error" class="text-red-500 text-center mt-4 h-5"></p>
+            </div>
+        </div>
+        <div id="admin-view" class="hidden">
+            <div class="flex justify-between items-center mb-8"><h1 class="text-4xl text-center fft-title">Alphabet Challenge</h1><button id="check-perms-btn" class="py-1 px-3 text-sm fft-button fft-button-secondary">Check Permissions</button></div>
+            <div class="fft-border mb-8">
+                <h2 class="text-2xl mb-4 fft-title">Game Configuration</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div><label for="background-input">Background Image URL</label><input type="text" id="background-input" placeholder="https://..."></div>
+                    <div><label for="message-input">Start Modal Message</label><textarea id="message-input" rows="3" placeholder="Welcome, warrior..."></textarea></div>
+                </div>
+                <button id="save-config-btn" class="mt-4 py-2 px-5 text-lg fft-button">Save Configuration</button>
+            </div>
+            <div class="fft-border">
+                <div class="flex justify-between items-center mb-4"><h2 class="text-2xl fft-title">Question Editor</h2><button id="save-questions-btn" class="py-2 px-5 text-lg fft-button">Save All Questions</button></div>
+                <div id="question-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4 text-center"><p id="loading-questions">Please sign in to load questions...</p></div>
+                <button id="create-questions-btn" class="hidden mt-4 py-2 px-5 text-lg fft-button">Create Initial Question Set</button>
+            </div>
+        </div>
+        <div id="status-message" class="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-4 rounded-lg shadow-lg opacity-0">Saved successfully!</div>
+    </div>
+    <script src="/__/firebase/11.6.1/firebase-app.js"></script>
+    <script src="/__/firebase/11.6.1/firebase-auth.js"></script>
+    <script src="/__/firebase/11.6.1/firebase-firestore.js"></script>
+    <script src="/__/firebase/init.js"></script>
+    <script type="module">
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        const loginView = document.getElementById('login-view');
+        const adminView = document.getElementById('admin-view');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const signinBtn = document.getElementById('signin-btn');
+        const loginError = document.getElementById('login-error');
+        const backgroundInput = document.getElementById('background-input');
+        const messageInput = document.getElementById('message-input');
+        const saveConfigBtn = document.getElementById('save-config-btn');
+        const questionList = document.getElementById('question-list');
+        const createQuestionsBtn = document.getElementById('create-questions-btn');
+        const saveQuestionsBtn = document.getElementById('save-questions-btn');
+        const statusMessage = document.getElementById('status-message');
+        const checkPermsBtn = document.getElementById('check-perms-btn');
+        let db;
+        let auth;
+        let dataDocRef;
+        let questionsCollectionRef;
+        function setupFirebase() {
+            try {
+                db = getFirestore();
+                auth = getAuth();
+                const appId = 'alphabet-challenge-default';
+                dataDocRef = doc(db, 'artifacts', appId, 'public', 'data');
+                questionsCollectionRef = collection(dataDocRef, 'questions');
+                onAuthStateChanged(auth, user => {
+                    if (user) {
+                        user.getIdTokenResult().then(idTokenResult => {
+                            if (!!idTokenResult.claims.admin) {
+                                loginView.classList.add('hidden');
+                                adminView.classList.remove('hidden');
+                                loadAdminData();
+                            } else {
+                                loginError.textContent = "You are not authorized to view this page.";
+                            }
+                        });
+                    } else {
+                        loginView.classList.remove('hidden');
+                        adminView.classList.add('hidden');
+                    }
+                });
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                document.body.innerHTML = `<h1 class="fft-title text-center text-2xl">Firebase Connection Failed. Check console.</h1>`;
+            }
+        }
+        async function handleSignIn() {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+            loginError.textContent = '';
+            try { await signInWithEmailAndPassword(auth, email, password);
+            } catch (error) { console.error("Sign in failed:", error.code); loginError.textContent = "Sign in failed. Check email and password."; }
+        }
+        async function checkPermissions() {
+            const user = auth.currentUser;
+            if (user) { const idTokenResult = await user.getIdTokenResult(true); alert('Current user claims: ' + JSON.stringify(idTokenResult.claims));
+            } else { alert('No user is currently signed in.'); }
+        }
+        function loadAdminData() { loadConfig(); loadQuestions(); }
+        async function loadConfig() {
+            try {
+                const docSnap = await getDoc(dataDocRef);
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    backgroundInput.value = data.backgroundImage || '';
+                    messageInput.value = data.welcomeMessage || '';
+                } else { console.log("No config document found. Saving will create it."); }
+            } catch (error) { console.error("Error loading config:", error); showStatusMessage('Error loading config', true); }
+        }
+        async function loadQuestions() {
+            questionList.innerHTML = '<p>Loading questions...</p>';
+            try {
+                const querySnapshot = await getDocs(questionsCollectionRef);
+                if (querySnapshot.empty) { questionList.innerHTML = `<p class="mb-4">No questions found in the database.</p>`; createQuestionsBtn.classList.remove('hidden'); return; }
+                createQuestionsBtn.classList.add('hidden');
+                let questions = [];
+                querySnapshot.forEach(doc => { questions.push({ id: doc.id, ...doc.data() }); });
+                questions.sort((a, b) => a.letter.localeCompare(b.letter));
+                questionList.innerHTML = '';
+                questions.forEach(q => {
+                    const div = document.createElement('div');
+                    div.className = 'grid grid-cols-1 md:grid-cols-[2rem_1fr_1fr] gap-4 items-center';
+                    div.innerHTML = `<label class="text-2xl fft-title text-center">${q.letter.toUpperCase()}</label><input type="text" data-id="${q.id}" data-field="question" value="${q.question}" placeholder="Question text..."><input type="text" data-id="${q.id}" data-field="answer" value="${q.answer}" placeholder="Answer...">`;
+                    questionList.appendChild(div);
+                });
+            } catch (error) { console.error("Error loading questions: ", error); questionList.innerHTML = `<p class="text-red-400">Permission denied. You must be an admin to view questions.</p>`; }
+        }
+        async function createInitialQuestions() {
+            createQuestionsBtn.textContent = 'Creating...';
+            createQuestionsBtn.disabled = true;
+            const defaultQuestions = [ { letter: 'a', question: 'STARTS WITH A: A fruit that is typically red or green.', answer: 'apple'}, { letter: 'b', question: 'STARTS WITH B: A yellow fruit monkeys love.', answer: 'banana'}, { letter: 'c', question: 'STARTS WITH C: A vehicle for transport.', answer: 'car'}, { letter: 'd', question: 'STARTS WITH D: A loyal pet.', answer: 'dog'}, { letter: 'e', question: 'STARTS WITH E: The planet we live on.', answer: 'earth'}, { letter: 'f', question: 'STARTS WITH F: What fire produces.', answer: 'flame'}, { letter: 'g', question: 'STARTS WITH G: The color of grass.', answer: 'green'}, { letter: 'h', question: 'STARTS WITH H: A place where people live.', answer: 'house'}, { letter: 'i', question: 'STARTS WITH I: A frozen dessert.', answer: 'ice cream'}, { letter: 'j', question: 'STARTS WITH J: A sweet fruit spread.', answer: 'jam'}, { letter: 'k', question: 'STARTS WITH K: Used to open a lock.', answer: 'key'}, { letter: 'l', question: 'STARTS WITH L: King of the jungle.', answer: 'lion'}, { letter: 'm', question: 'STARTS WITH M: Earth\'s natural satellite.', answer: 'moon'}, { letter: 'n', question: 'STARTS WITH N: Opposite of day.', answer: 'night'}, { letter: 'o', question: 'STARTS WITH O: A citrus fruit.', answer: 'orange'}, { letter: 'p', question: 'STARTS WITH P: A writing instrument.', answer: 'pen'}, { letter: 'q', question: 'STARTS WITH Q: A female monarch.', answer: 'queen'}, { letter: 'r', question: 'STARTS WITH R: Appears after a storm.', answer: 'rainbow'}, { letter: 's', question: 'STARTS WITH S: The star in our solar system.', answer: 'sun'}, { letter: 't', question: 'STARTS WITH T: A large woody plant.', answer: 'tree'}, { letter: 'u', question: 'STARTS WITH U: Used for rain protection.', answer: 'umbrella'}, { letter: 'v', question: 'STARTS WITH V: A stringed instrument.', answer: 'violin'}, { letter: 'w', question: 'STARTS WITH W: Essential liquid for life.', answer: 'water'}, { letter: 'x', question: 'CONTAINS X: A musical instrument with wooden bars.', answer: 'xylophone'}, { letter: 'y', question: 'STARTS WITH Y: The color of the sun.', answer: 'yellow'}, { letter: 'z', question: 'STARTS WITH Z: A striped African equine.', answer: 'zebra'} ];
+            const batch = writeBatch(db);
+            defaultQuestions.forEach(q => { const docRef = doc(questionsCollectionRef, q.letter); batch.set(docRef, q); });
+            try { await batch.commit(); showStatusMessage('Initial questions created!'); loadQuestions(); }
+            catch (error) { console.error("Error creating initial questions:", error); showStatusMessage('Error creating questions!', true); createQuestionsBtn.textContent = 'Try Again'; createQuestionsBtn.disabled = false; }
+        }
+        async function saveConfig() {
+            try { await setDoc(dataDocRef, { backgroundImage: backgroundInput.value, welcomeMessage: messageInput.value }, { merge: true }); showStatusMessage('Configuration saved!'); }
+            catch (error) { console.error("Error saving config:", error); showStatusMessage('Error saving config! (Permission Denied)', true); }
+        }
+        async function saveQuestions() {
+            const batch = writeBatch(db);
+            const inputs = questionList.querySelectorAll('input[type="text"]');
+            let updates = {};
+            inputs.forEach(input => { const id = input.dataset.id; const field = input.dataset.field; const value = input.value; if (!updates[id]) updates[id] = {}; updates[id][field] = value; });
+            for (const id in updates) { const docRef = doc(questionsCollectionRef, id); batch.update(docRef, updates[id]); }
+            try { await batch.commit(); showStatusMessage('All questions saved!'); }
+            catch (error) { console.error("Error saving questions:", error); showStatusMessage('Error saving questions! (Permission Denied)', true); }
+        }
+        function showStatusMessage(message, isError = false) { statusMessage.textContent = message; statusMessage.style.backgroundColor = isError ? 'var(--fft-red)' : '#5a8a4d'; statusMessage.style.opacity = 1; setTimeout(() => { statusMessage.style.opacity = 0; }, 3000); }
+        signinBtn.addEventListener('click', handleSignIn);
+        saveConfigBtn.addEventListener('click', saveConfig);
+        saveQuestionsBtn.addEventListener('click', saveQuestions);
+        createQuestionsBtn.addEventListener('click', createInitialQuestions);
+        checkPermsBtn.addEventListener('click', checkPermissions);
+        setupFirebase();
+    </script>
+</body>
+</html>

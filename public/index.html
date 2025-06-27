@@ -9,200 +9,47 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* --- Final Fantasy Tactics Theme --- */
-        :root {
-            --fft-blue: #1a2c5a;
-            --fft-gold: #f7d88f;
-            --fft-light-gold: #fff4d5;
-            --fft-parchment: #f0e6d2;
-            --fft-dark-parchment: #d3c6ad;
-            --fft-red: #a83c32;
-            --fft-green: #5a8a4d;
-        }
-
-        body {
-            font-family: 'IM Fell English SC', serif;
-            background-color: #000;
-            background-image: url('https://www.transparenttextures.com/patterns/old-wall.png');
-            background-size: cover;
-            background-position: center;
-            color: var(--fft-parchment);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 1rem;
-            overflow: hidden;
-            transition: background-image 0.5s ease-in-out;
-        }
-
-        .game-container {
-            width: 100%;
-            max-width: 1200px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 1.5rem;
-        }
-        
-        /* Ornate border style for UI elements */
-        .fft-border {
-            background-color: var(--fft-blue);
-            border: 2px solid var(--fft-gold);
-            box-shadow: 0 0 0 2px var(--fft-blue), inset 0 0 10px rgba(0,0,0,0.5);
-            border-radius: 8px;
-            padding: 1.5rem;
-        }
-
-        #rosco-container {
-            position: relative;
-            width: 90vw;
-            height: 90vw;
-            max-width: 500px;
-            max-height: 500px;
-            margin: 1rem auto;
-        }
-
-        .letter {
-            position: absolute;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-family: 'Cinzel', serif;
-            font-size: 1.6rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: var(--fft-light-gold);
-            transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-            cursor: default;
-            border: 2px solid rgba(0,0,0,0.3);
-        }
-
-        /* Letter states */
-        .unanswered { background-color: #4a5568; box-shadow: inset 0 0 5px #000; } /* slate-600 */
+        :root { --fft-blue: #1a2c5a; --fft-gold: #f7d88f; --fft-light-gold: #fff4d5; --fft-parchment: #f0e6d2; --fft-dark-parchment: #d3c6ad; --fft-red: #a83c32; --fft-green: #5a8a4d; }
+        body { font-family: 'IM Fell English SC', serif; background-color: #000; background-image: url('https://www.transparenttextures.com/patterns/old-wall.png'); background-size: cover; background-position: center; color: var(--fft-parchment); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 1rem; overflow: hidden; transition: background-image 0.5s ease-in-out; }
+        .game-container { width: 100%; max-width: 1200px; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
+        .fft-border { background-color: var(--fft-blue); border: 2px solid var(--fft-gold); box-shadow: 0 0 0 2px var(--fft-blue), inset 0 0 10px rgba(0,0,0,0.5); border-radius: 8px; padding: 1.5rem; }
+        #rosco-container { position: relative; width: 90vw; height: 90vw; max-width: 500px; max-height: 500px; margin: 1rem auto; }
+        .letter { position: absolute; width: 48px; height: 48px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-family: 'Cinzel', serif; font-size: 1.6rem; font-weight: 700; text-transform: uppercase; color: var(--fft-light-gold); transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease; cursor: default; border: 2px solid rgba(0,0,0,0.3); }
+        .unanswered { background-color: #4a5568; box-shadow: inset 0 0 5px #000; }
         .active { background-color: var(--fft-gold); color: var(--fft-blue); transform: scale(1.2); box-shadow: 0 0 15px var(--fft-gold), inset 0 0 5px #fff; }
         .correct { background-color: var(--fft-green); box-shadow: inset 0 0 5px #000; }
         .incorrect { background-color: var(--fft-red); box-shadow: inset 0 0 5px #000; }
-
-        .interaction-area {
-            width: 100%;
-            max-width: 600px;
-            text-align: center;
-        }
-        
-        #definition {
-            min-height: 60px;
-            font-size: 1.25rem;
-            line-height: 1.6;
-            color: var(--fft-parchment);
-            text-shadow: 1px 1px 2px #000;
-        }
-
-        #answer-input, #initials-input {
-            font-family: 'IM Fell English SC', serif;
-            background-color: rgba(0,0,0,0.3);
-            color: var(--fft-parchment);
-            border: 2px solid var(--fft-dark-parchment);
-            border-radius: 4px;
-            text-align: center;
-        }
-        #answer-input::placeholder, #initials-input::placeholder {
-            color: var(--fft-dark-parchment);
-        }
-        #answer-input:focus, #initials-input:focus {
-            outline: none;
-            border-color: var(--fft-gold);
-            box-shadow: 0 0 0 2px var(--fft-gold);
-        }
-        #initials-input.invalid {
-            border-color: var(--fft-red);
-        }
-
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.85);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            backdrop-filter: blur(5px);
-        }
-        
-        .modal-content {
-            width: 90%;
-            max-width: 500px;
-        }
-        
-        .fft-title {
-            font-family: 'Cinzel', serif;
-            font-weight: 700;
-            color: var(--fft-gold);
-            text-shadow: 2px 2px 3px #000;
-        }
-
-        .fft-button {
-            background-color: var(--fft-blue);
-            border: 2px solid var(--fft-gold);
-            border-radius: 4px;
-            color: var(--fft-gold);
-            font-family: 'IM Fell English SC', serif;
-            transition: all 0.2s ease;
-        }
-        .fft-button:hover:not(:disabled) {
-            background-color: var(--fft-gold);
-            color: var(--fft-blue);
-        }
-        .fft-button:disabled {
-            border-color: #666;
-            color: #666;
-            background-color: #333;
-            cursor: not-allowed;
-        }
-        
-        #leaderboard-list li {
-            display: flex;
-            justify-content: space-between;
-            padding: 0.5rem 1rem;
-            border-radius: 0.5rem;
-            font-size: 1.1rem;
-        }
-        #leaderboard-list li:nth-child(odd) {
-            background-color: rgba(0,0,0,0.2);
-        }
+        .interaction-area { width: 100%; max-width: 600px; text-align: center; }
+        #definition { min-height: 60px; font-size: 1.25rem; line-height: 1.6; color: var(--fft-parchment); text-shadow: 1px 1px 2px #000; }
+        #answer-input, #initials-input { font-family: 'IM Fell English SC', serif; background-color: rgba(0,0,0,0.3); color: var(--fft-parchment); border: 2px solid var(--fft-dark-parchment); border-radius: 4px; text-align: center; }
+        #answer-input::placeholder, #initials-input::placeholder { color: var(--fft-dark-parchment); }
+        #answer-input:focus, #initials-input:focus { outline: none; border-color: var(--fft-gold); box-shadow: 0 0 0 2px var(--fft-gold); }
+        #initials-input.invalid { border-color: var(--fft-red); }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.85); display: flex; justify-content: center; align-items: center; z-index: 100; backdrop-filter: blur(5px); }
+        .modal-content { width: 90%; max-width: 500px; }
+        .fft-title { font-family: 'Cinzel', serif; font-weight: 700; color: var(--fft-gold); text-shadow: 2px 2px 3px #000; }
+        .fft-button { background-color: var(--fft-blue); border: 2px solid var(--fft-gold); border-radius: 4px; color: var(--fft-gold); font-family: 'IM Fell English SC', serif; transition: all 0.2s ease; }
+        .fft-button:hover:not(:disabled) { background-color: var(--fft-gold); color: var(--fft-blue); }
+        .fft-button:disabled { border-color: #666; color: #666; background-color: #333; cursor: not-allowed; }
+        #leaderboard-list li { display: flex; justify-content: space-between; padding: 0.5rem 1rem; border-radius: 0.5rem; font-size: 1.1rem; }
+        #leaderboard-list li:nth-child(odd) { background-color: rgba(0,0,0,0.2); }
         #leaderboard-list .rank { font-weight: 700; color: var(--fft-gold); }
         #leaderboard-list .initials { font-weight: 600; color: var(--fft-parchment); }
         #leaderboard-list .score { font-weight: 700; color: var(--fft-light-gold); }
-
     </style>
 </head>
 <body>
-
     <div id="start-modal" class="modal">
         <div class="modal-content fft-border">
             <h2 class="text-4xl mb-2 fft-title">Alphabet Challenge</h2>
             <p id="welcome-message" class="text-lg mb-4 text-slate-300">Leaderboard</p>
-            
-            <div id="leaderboard-container" class="mb-6 h-48 overflow-y-auto bg-black bg-opacity-20 rounded-lg p-2">
-                <ul id="leaderboard-list" class="text-left">
-                    </ul>
-            </div>
-
+            <div id="leaderboard-container" class="mb-6 h-48 overflow-y-auto bg-black bg-opacity-20 rounded-lg p-2"><ul id="leaderboard-list" class="text-left"></ul></div>
             <p class="text-md mb-2 text-slate-300">Enter your initials (3 letters):</p>
             <input type="text" id="initials-input" placeholder="AAA" maxlength="3" class="w-full uppercase text-xl p-2 mb-2">
             <p id="initials-error" class="text-red-500 text-sm h-5 mb-2"></p>
-            
             <button id="start-btn" class="w-full font-bold py-3 px-6 text-xl fft-button" disabled>Loading Game Data...</button>
         </div>
     </div>
-    
     <div id="end-modal" class="modal hidden">
         <div class="modal-content fft-border">
             <h2 id="end-title" class="text-4xl mb-4 fft-title"></h2>
@@ -211,17 +58,12 @@
             <button id="play-again-btn" class="w-full font-bold py-3 px-6 text-xl fft-button">Play Again</button>
         </div>
     </div>
-
     <div class="game-container">
         <div class="w-full max-w-3xl flex justify-between items-center fft-border p-4">
             <div id="status-text" class="text-2xl font-semibold fft-title">Let's Play!</div>
-            <div class="flex items-center gap-3">
-                <div id="timer" class="text-4xl font-bold" style="font-family: 'Cinzel', serif;">200</div>
-            </div>
+            <div class="flex items-center gap-3"><div id="timer" class="text-4xl font-bold" style="font-family: 'Cinzel', serif;">200</div></div>
         </div>
-
         <div id="rosco-container"></div>
-
         <div class="interaction-area fft-border">
             <p id="definition" class="mb-4">The definition for the word will appear here...</p>
             <div class="flex flex-col sm:flex-row gap-3">
@@ -231,14 +73,13 @@
             </div>
         </div>
     </div>
-
+    <script src="/__/firebase/11.6.1/firebase-app.js"></script>
+    <script src="/__/firebase/11.6.1/firebase-auth.js"></script>
+    <script src="/__/firebase/11.6.1/firebase-firestore.js"></script>
+    <script src="/__/firebase/init.js"></script>
     <script type="module">
-        // --- FIREBASE IMPORTS ---
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, getDocs, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // --- DOM ELEMENTS ---
         const roscoContainer = document.getElementById('rosco-container');
         const timerDisplay = document.getElementById('timer');
         const statusText = document.getElementById('status-text');
@@ -254,8 +95,6 @@
         const initialsError = document.getElementById('initials-error');
         const leaderboardList = document.getElementById('leaderboard-list');
         const welcomeMessage = document.getElementById('welcome-message');
-
-        // --- GAME STATE & FIREBASE ---
         let questions = [];
         let currentIndex = 0;
         let timeLeft = 200;
@@ -264,118 +103,60 @@
         let playerInitials = '';
         let db;
         let scoresCollection;
-        let baseDocRef; // Reference to the document holding config and subcollections
-
-        // --- LOADING STATE ---
+        let baseDocRef;
         let configLoaded = false;
         let questionsLoaded = false;
-
-        // --- FIREBASE SETUP ---
         async function setupFirebase() {
             try {
-                const firebaseConfig = {
-                  apiKey: "AIzaSyASh75I7gFxlrbZvfX3RQ8uD8ynaAThFjI",
-                  authDomain: "fftalphabet.firebaseapp.com",
-                  projectId: "fftalphabet",
-                  storageBucket: "fftalphabet.firebasestorage.app",
-                  messagingSenderId: "525111136630",
-                  appId: "1:525111136630:web:c829c9e7c021f0d8212a57",
-                  measurementId: "G-Y0BLN9RTTR"
-                };
-                
-                const appId = 'alphabet-challenge-default';
-                
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                const auth = getAuth(app);
-                
+                db = getFirestore();
+                const auth = getAuth();
                 await signInAnonymously(auth);
-
-                // CORRECTED: Path now points to the 'data' document (4 segments)
+                const appId = 'alphabet-challenge-default';
                 baseDocRef = doc(db, 'artifacts', appId, 'public', 'data');
-                
-                // Subcollections are relative to the base document reference
                 scoresCollection = collection(baseDocRef, 'scores');
-                
-                // Fetch all game data
                 fetchAndDisplayLeaderboard();
                 fetchGameConfig();
                 fetchQuestions();
-
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
                 startBtn.textContent = 'Game Error: Connection Failed';
             }
         }
-
-        // --- DATA FETCHING ---
         async function fetchGameConfig() {
             try {
-                // The config data is in the base document itself
                 const docSnap = await getDoc(baseDocRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
-                    if (data.backgroundImage) {
-                        document.body.style.backgroundImage = `url('${data.backgroundImage}')`;
-                    }
-                    if (data.welcomeMessage) {
-                        welcomeMessage.textContent = data.welcomeMessage;
-                    }
+                    if (data.backgroundImage) document.body.style.backgroundImage = `url('${data.backgroundImage}')`;
+                    if (data.welcomeMessage) welcomeMessage.textContent = data.welcomeMessage;
                 }
-            } catch (error) {
-                console.error("Could not fetch game config:", error);
-            } finally {
-                configLoaded = true;
-                checkIfReadyToPlay();
-            }
+            } catch (error) { console.error("Could not fetch game config:", error); } 
+            finally { configLoaded = true; checkIfReadyToPlay(); }
         }
-
         async function fetchQuestions() {
             try {
-                // The 'questions' collection is a subcollection of our base document
                 const questionsRef = collection(baseDocRef, 'questions');
                 const querySnapshot = await getDocs(questionsRef);
                 let fetchedQuestions = [];
-                querySnapshot.forEach(doc => {
-                    fetchedQuestions.push({ id: doc.id, ...doc.data() });
-                });
-                
+                querySnapshot.forEach(doc => { fetchedQuestions.push({ id: doc.id, ...doc.data() }); });
                 if (fetchedQuestions.length > 0) {
                     fetchedQuestions.sort((a, b) => a.letter.localeCompare(b.letter));
                     questions = fetchedQuestions;
-                } else {
-                    throw new Error("No questions found in the database.");
-                }
-
-            } catch (error) {
-                console.error("Could not fetch questions:", error);
-                startBtn.textContent = 'Error: No Questions Found';
-            } finally {
-                questionsLoaded = true;
-                checkIfReadyToPlay();
-            }
+                } else { throw new Error("No questions found in the database."); }
+            } catch (error) { console.error("Could not fetch questions:", error); startBtn.textContent = 'Error: No Questions Found'; }
+            finally { questionsLoaded = true; checkIfReadyToPlay(); }
         }
-
-        function checkIfReadyToPlay() {
-            if (configLoaded && questionsLoaded && questions.length > 0) {
-                startBtn.textContent = 'Start Playing!';
-                // The button remains disabled until initials are entered.
-            }
-        }
-
-        // --- (The rest of the functions from your file remain unchanged) ---
-
+        function checkIfReadyToPlay() { if (configLoaded && questionsLoaded && questions.length > 0) { startBtn.textContent = 'Start Playing!'; } }
         function createRosco() {
             roscoContainer.innerHTML = '';
             const radius = roscoContainer.offsetWidth / 2 - 30;
             const centerX = roscoContainer.offsetWidth / 2;
             const centerY = roscoContainer.offsetHeight / 2;
             const angleStep = (2 * Math.PI) / questions.length;
-
             questions.forEach((q, i) => {
                 const letterDiv = document.createElement('div');
                 letterDiv.id = `letter-${q.letter}`;
-                letterDiv.className = `letter unanswered`; // Reset status visually
+                letterDiv.className = `letter unanswered`;
                 letterDiv.textContent = q.letter;
                 const angle = i * angleStep - (Math.PI / 2);
                 const x = centerX + radius * Math.cos(angle) - 24;
@@ -385,15 +166,13 @@
                 roscoContainer.appendChild(letterDiv);
             });
         }
-
         function initGame() {
             playerInitials = initialsInput.value.trim().toUpperCase();
             if (playerInitials.length !== 3 || !questionsLoaded) return;
-
             currentIndex = 0;
             timeLeft = 200;
             gameActive = true;
-            questions.forEach(q => q.status = 'unanswered'); // Reset status logically
+            questions.forEach(q => q.status = 'unanswered');
             timerDisplay.textContent = timeLeft;
             statusText.textContent = "Let's Play!";
             startModal.classList.add('hidden');
@@ -406,19 +185,13 @@
             if (timerInterval) clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 1000);
         }
-
         function nextQuestion() {
             const remainingQuestions = questions.filter(q => q.status === 'unanswered');
-            if (remainingQuestions.length === 0) {
-                endGame(true);
-                return;
-            }
+            if (remainingQuestions.length === 0) { endGame(true); return; }
             const prevLetterDiv = document.getElementById(`letter-${questions[currentIndex].letter}`);
             if (prevLetterDiv) prevLetterDiv.classList.remove('active');
             let nextIndex = (currentIndex + 1) % questions.length;
-            while (questions[nextIndex].status !== 'unanswered') {
-                nextIndex = (nextIndex + 1) % questions.length;
-            }
+            while (questions[nextIndex].status !== 'unanswered') { nextIndex = (nextIndex + 1) % questions.length; }
             currentIndex = nextIndex;
             const currentQuestion = questions[currentIndex];
             definitionDisplay.textContent = currentQuestion.question;
@@ -428,7 +201,6 @@
             const activeLetterDiv = document.getElementById(`letter-${currentQuestion.letter}`);
             activeLetterDiv.classList.add('active');
         }
-
         function checkAnswer() {
             if (!gameActive) return;
             const userAnswer = answerInput.value.trim().toLowerCase();
@@ -443,85 +215,45 @@
             }
             nextQuestion();
         }
-
-        function handlePass() {
-            if (!gameActive) return;
-            nextQuestion();
-        }
-
-        function updateTimer() {
-            timeLeft--;
-            timerDisplay.textContent = timeLeft;
-            if (timeLeft <= 0) {
-                endGame(false);
-            }
-        }
-
+        function handlePass() { if (!gameActive) return; nextQuestion(); }
+        function updateTimer() { timeLeft--; timerDisplay.textContent = timeLeft; if (timeLeft <= 0) { endGame(false); } }
         async function endGame(isWinner) {
             gameActive = false;
             clearInterval(timerInterval);
             answerInput.disabled = true;
             submitBtn.disabled = true;
             pasapalabraBtn.disabled = true;
-
             const correctAnswers = questions.filter(q => q.status === 'correct').length;
             const incorrectAnswers = questions.filter(q => q.status === 'incorrect').length;
-
             if (db && scoresCollection) {
-                try {
-                    await addDoc(scoresCollection, {
-                        initials: playerInitials,
-                        score: correctAnswers,
-                        createdAt: serverTimestamp()
-                    });
-                } catch (error) {
-                    console.error("Error saving score: ", error);
-                }
+                try { await addDoc(scoresCollection, { initials: playerInitials, score: correctAnswers, createdAt: serverTimestamp() });
+                } catch (error) { console.error("Error saving score: ", error); }
             }
-
             const endTitle = document.getElementById('end-title');
             const endMessage = document.getElementById('end-message');
             const endScore = document.getElementById('end-score');
-            if (isWinner) {
-                endTitle.textContent = 'Victory!';
-                endMessage.textContent = 'You have mastered The Circle!';
-            } else {
-                endTitle.textContent = "Defeated...";
-                endMessage.textContent = 'The challenge awaits your return.';
-            }
+            if (isWinner) { endTitle.textContent = 'Victory!'; endMessage.textContent = 'You have mastered The Circle!';
+            } else { endTitle.textContent = "Defeated..."; endMessage.textContent = 'The challenge awaits your return.'; }
             endScore.textContent = `Correct: ${correctAnswers} | Incorrect: ${incorrectAnswers}`;
             endModal.classList.remove('hidden');
         }
-
         function fetchAndDisplayLeaderboard() {
             if (!scoresCollection) return;
             const q = query(scoresCollection);
             onSnapshot(q, (snapshot) => {
                 let scores = [];
-                snapshot.forEach((doc) => {
-                    scores.push(doc.data());
-                });
+                snapshot.forEach((doc) => { scores.push(doc.data()); });
                 scores.sort((a, b) => b.score - a.score || (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
                 const topScores = scores.slice(0, 10);
-
                 leaderboardList.innerHTML = '';
-                if (topScores.length === 0) {
-                    leaderboardList.innerHTML = '<li>No scores yet. Be the first!</li>';
-                    return;
-                }
-                
+                if (topScores.length === 0) { leaderboardList.innerHTML = '<li>No scores yet. Be the first!</li>'; return; }
                 topScores.forEach((entry, index) => {
                     const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span class="rank">#${index + 1}</span>
-                        <span class="initials">${entry.initials}</span>
-                        <span class="score">${entry.score} Correct</span>
-                    `;
+                    li.innerHTML = `<span class="rank">#${index + 1}</span><span class="initials">${entry.initials}</span><span class="score">${entry.score} Correct</span>`;
                     leaderboardList.appendChild(li);
                 });
             });
         }
-
         initialsInput.addEventListener('input', () => {
             const value = initialsInput.value.trim();
             if (/^[a-zA-Z]{3}$/.test(value) && questionsLoaded && configLoaded) {
@@ -531,27 +263,15 @@
             } else {
                 initialsError.textContent = 'Must be 3 letters.';
                 initialsInput.classList.add('invalid');
-                if(questionsLoaded && configLoaded) {
-                   startBtn.disabled = true;
-                }
+                if(questionsLoaded && configLoaded) { startBtn.disabled = true; }
             }
         });
-        
         startBtn.addEventListener('click', initGame);
-        
-        playAgainBtn.addEventListener('click', () => {
-             endModal.classList.add('hidden');
-             startModal.classList.remove('hidden');
-             initialsInput.value = '';
-             startBtn.disabled = true;
-        });
-
+        playAgainBtn.addEventListener('click', () => { endModal.classList.add('hidden'); startModal.classList.remove('hidden'); initialsInput.value = ''; startBtn.disabled = true; });
         submitBtn.addEventListener('click', checkAnswer);
         pasapalabraBtn.addEventListener('click', handlePass);
         answerInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkAnswer(); });
         window.addEventListener('resize', createRosco);
-        
-        // --- INITIALIZE ---
         setupFirebase();
     </script>
 </body>
