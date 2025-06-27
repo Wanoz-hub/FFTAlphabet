@@ -168,9 +168,9 @@
                 }
 
                 // Define Firestore references
-                const basePath = `artifacts/${appId}/public`;
-                configRef = doc(db, basePath, 'data', 'config');
-                questionsCollectionRef = collection(db, basePath, 'data', 'questions');
+                configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config');
+                questionsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'questions');
+
 
                 // Load existing data
                 loadConfig();
