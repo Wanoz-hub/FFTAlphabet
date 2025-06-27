@@ -275,13 +275,13 @@
             try {
                 // ** FIX: Corrected the firebaseConfig object syntax. **
                 const firebaseConfig = {
-                  apiKey: "AIzaSyB4g-...", // Replace with your actual API key
+                  apiKey: "AIzaSyASh75I7gFxlrbZvfX3RQ8uD8ynaAThFjI",
                   authDomain: "fftalphabet.firebaseapp.com",
                   projectId: "fftalphabet",
-                  storageBucket: "fftalphabet.appspot.com",
-                  messagingSenderId: "525977718690",
-                  appId: "1:525977718690:web:e0b9e9fe82f7e802c1f257",
-                  measurementId: "G-Y9ELMKA8TR"
+                  storageBucket: "fftalphabet.firebasestorage.app",
+                  messagingSenderId: "525111136630",
+                  appId: "1:525111136630:web:c829c9e7c021f0d8212a57",
+                  measurementId: "G-Y0BLN9RTTR"
                 };
                 
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'alphabet-challenge-default';
@@ -303,7 +303,7 @@
                     await signInAnonymously(auth);
                 }
 
-                const basePath = `artifacts/${appId}/public/data`;
+                const basePath = `artifacts/alphabet-challenge-default/public/data`;
                 scoresCollection = collection(db, basePath, 'scores');
                 
                 // Fetch all game data
