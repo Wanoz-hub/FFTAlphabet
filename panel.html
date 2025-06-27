@@ -115,6 +115,7 @@
                 <div id="question-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4 text-center">
                     <p id="loading-questions">Please sign in to load questions...</p>
                 </div>
+                 <button id="create-questions-btn" class="hidden mt-4 py-2 px-5 text-lg fft-button">Create Initial Question Set</button>
             </div>
         </div>
         
@@ -141,13 +142,14 @@
         const messageInput = document.getElementById('message-input');
         const saveConfigBtn = document.getElementById('save-config-btn');
         const questionList = document.getElementById('question-list');
+        const createQuestionsBtn = document.getElementById('create-questions-btn');
         const saveQuestionsBtn = document.getElementById('save-questions-btn');
         const statusMessage = document.getElementById('status-message');
 
         // --- FIREBASE STATE ---
         let db;
         let auth;
-        let configRef;
+        let dataDocRef; // This single ref points to the doc holding config fields and subcollections
         let questionsCollectionRef;
 
         // --- FIREBASE SETUP ---
@@ -168,26 +170,24 @@
                 auth = getAuth(app);
                 
                 const appId = 'alphabet-challenge-default';
-                configRef = doc(db, 'artifacts', appId, 'public', 'data', 'config');
-                questionsCollectionRef = collection(db, 'artifacts', appId, 'public', 'data', 'questions');
+                // CORRECTED: Path now points to the 'data' document (4 segments)
+                dataDocRef = doc(db, 'artifacts', appId, 'public', 'data');
+                // CORRECTED: Questions collection is a subcollection of the data document
+                questionsCollectionRef = collection(dataDocRef, 'questions');
 
                 // Listen for auth state changes
                 onAuthStateChanged(auth, user => {
                     if (user) {
-                        // User is signed in
                         user.getIdTokenResult().then(idTokenResult => {
-                            // IMPORTANT: Check for admin custom claim
                             if (!!idTokenResult.claims.admin) {
                                 loginView.classList.add('hidden');
                                 adminView.classList.remove('hidden');
-                                loadConfig();
-                                loadQuestions();
+                                loadAdminData();
                             } else {
                                 loginError.textContent = "You are not authorized to view this page.";
                             }
                         });
                     } else {
-                        // User is signed out
                         loginView.classList.remove('hidden');
                         adminView.classList.add('hidden');
                     }
@@ -199,34 +199,35 @@
             }
         }
 
-        // --- AUTHENTICATION ---
+        // --- AUTH & DATA LOADING ---
         async function handleSignIn() {
             const email = emailInput.value;
             const password = passwordInput.value;
             loginError.textContent = '';
-
-            if (!email || !password) {
-                loginError.textContent = "Email and password cannot be empty.";
-                return;
-            }
-
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // Auth state listener will handle showing the admin view
             } catch (error) {
                 console.error("Sign in failed:", error.code);
                 loginError.textContent = "Sign in failed. Check email and password.";
             }
         }
+        
+        function loadAdminData() {
+            loadConfig();
+            loadQuestions();
+        }
 
         // --- DATA HANDLING FUNCTIONS ---
         async function loadConfig() {
             try {
-                const docSnap = await getDoc(configRef);
+                // Config fields are read from the main data document
+                const docSnap = await getDoc(dataDocRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     backgroundInput.value = data.backgroundImage || '';
                     messageInput.value = data.welcomeMessage || '';
+                } else {
+                    console.log("No config document found. Saving will create it.");
                 }
             } catch (error) {
                 console.error("Error loading config:", error);
@@ -239,11 +240,12 @@
             try {
                 const querySnapshot = await getDocs(questionsCollectionRef);
                 if (querySnapshot.empty) {
-                     questionList.innerHTML = `<p>No questions found. You can create them now.</p>`;
-                     createInitialQuestions(); // Helper to populate UI for a new set
+                     questionList.innerHTML = `<p class="mb-4">No questions found in the database.</p>`;
+                     createQuestionsBtn.classList.remove('hidden'); // Show create button
                      return;
                 }
                 
+                createQuestionsBtn.classList.add('hidden'); // Hide create button if questions exist
                 let questions = [];
                 querySnapshot.forEach(doc => {
                     questions.push({ id: doc.id, ...doc.data() });
@@ -268,9 +270,61 @@
             }
         }
         
+        async function createInitialQuestions() {
+            createQuestionsBtn.textContent = 'Creating...';
+            createQuestionsBtn.disabled = true;
+
+            const defaultQuestions = [
+                { letter: 'a', question: 'STARTS WITH A: A fruit that is typically red or green.', answer: 'apple'},
+                { letter: 'b', question: 'STARTS WITH B: A yellow fruit monkeys love.', answer: 'banana'},
+                { letter: 'c', question: 'STARTS WITH C: A vehicle for transport.', answer: 'car'},
+                { letter: 'd', question: 'STARTS WITH D: A loyal pet.', answer: 'dog'},
+                { letter: 'e', question: 'STARTS WITH E: The planet we live on.', answer: 'earth'},
+                { letter: 'f', question: 'STARTS WITH F: What fire produces.', answer: 'flame'},
+                { letter: 'g', question: 'STARTS WITH G: The color of grass.', answer: 'green'},
+                { letter: 'h', question: 'STARTS WITH H: A place where people live.', answer: 'house'},
+                { letter: 'i', question: 'STARTS WITH I: A frozen dessert.', answer: 'ice cream'},
+                { letter: 'j', question: 'STARTS WITH J: A sweet fruit spread.', answer: 'jam'},
+                { letter: 'k', question: 'STARTS WITH K: Used to open a lock.', answer: 'key'},
+                { letter: 'l', question: 'STARTS WITH L: King of the jungle.', answer: 'lion'},
+                { letter: 'm', question: 'STARTS WITH M: Earth\'s natural satellite.', answer: 'moon'},
+                { letter: 'n', question: 'STARTS WITH N: Opposite of day.', answer: 'night'},
+                { letter: 'o', question: 'STARTS WITH O: A citrus fruit.', answer: 'orange'},
+                { letter: 'p', question: 'STARTS WITH P: A writing instrument.', answer: 'pen'},
+                { letter: 'q', question: 'STARTS WITH Q: A female monarch.', answer: 'queen'},
+                { letter: 'r', question: 'STARTS WITH R: Appears after a storm.', answer: 'rainbow'},
+                { letter: 's', question: 'STARTS WITH S: The star in our solar system.', answer: 'sun'},
+                { letter: 't', question: 'STARTS WITH T: A large woody plant.', answer: 'tree'},
+                { letter: 'u', question: 'STARTS WITH U: Used for rain protection.', answer: 'umbrella'},
+                { letter: 'v', question: 'STARTS WITH V: A stringed instrument.', answer: 'violin'},
+                { letter: 'w', question: 'STARTS WITH W: Essential liquid for life.', answer: 'water'},
+                { letter: 'x', question: 'CONTAINS X: A musical instrument with wooden bars.', answer: 'xylophone'},
+                { letter: 'y', question: 'STARTS WITH Y: The color of the sun.', answer: 'yellow'},
+                { letter: 'z', question: 'STARTS WITH Z: A striped African equine.', answer: 'zebra'}
+            ];
+
+            const batch = writeBatch(db);
+            defaultQuestions.forEach(q => {
+                const docRef = doc(questionsCollectionRef, q.letter); // Use the subcollection ref
+                batch.set(docRef, q);
+            });
+
+            try {
+                await batch.commit();
+                showStatusMessage('Initial questions created!');
+                loadQuestions(); // Reload the questions to display them
+            } catch (error) {
+                console.error("Error creating initial questions:", error);
+                showStatusMessage('Error creating questions!', true);
+                createQuestionsBtn.textContent = 'Try Again';
+                createQuestionsBtn.disabled = false;
+            }
+        }
+
         async function saveConfig() {
             try {
-                await setDoc(configRef, {
+                // Config fields are 'merged' into the main data document
+                await setDoc(dataDocRef, {
                     backgroundImage: backgroundInput.value,
                     welcomeMessage: messageInput.value
                 }, { merge: true });
@@ -295,7 +349,7 @@
             });
 
             for (const id in updates) {
-                const docRef = doc(questionsCollectionRef, id);
+                const docRef = doc(questionsCollectionRef, id); // Use the subcollection ref
                 batch.update(docRef, updates[id]);
             }
 
@@ -319,6 +373,7 @@
         signinBtn.addEventListener('click', handleSignIn);
         saveConfigBtn.addEventListener('click', saveConfig);
         saveQuestionsBtn.addEventListener('click', saveQuestions);
+        createQuestionsBtn.addEventListener('click', createInitialQuestions);
 
         // --- INITIALIZE ---
         setupFirebase();
