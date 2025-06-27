@@ -52,6 +52,15 @@
             cursor: pointer;
         }
         .fft-button:hover:not(:disabled) { background-color: var(--fft-gold); color: var(--fft-blue); }
+        .fft-button-secondary {
+             background-color: transparent;
+             border-color: var(--fft-dark-parchment);
+             color: var(--fft-dark-parchment)
+        }
+        .fft-button-secondary:hover {
+             background-color: var(--fft-dark-parchment);
+             color: var(--fft-blue);
+        }
         label { display: block; margin-bottom: 0.5rem; font-size: 1.1rem; color: var(--fft-light-gold); }
         input[type="text"], input[type="email"], input[type="password"], textarea {
             width: 100%;
@@ -90,7 +99,10 @@
         </div>
 
         <div id="admin-view" class="hidden">
-            <h1 class="text-4xl text-center mb-8 fft-title">Alphabet Challenge - Admin Panel</h1>
+            <div class="flex justify-between items-center mb-8">
+                 <h1 class="text-4xl text-center fft-title">Alphabet Challenge</h1>
+                 <button id="check-perms-btn" class="py-1 px-3 text-sm fft-button fft-button-secondary">Check Permissions</button>
+            </div>
 
             <div class="fft-border mb-8">
                 <h2 class="text-2xl mb-4 fft-title">Game Configuration</h2>
@@ -145,11 +157,12 @@
         const createQuestionsBtn = document.getElementById('create-questions-btn');
         const saveQuestionsBtn = document.getElementById('save-questions-btn');
         const statusMessage = document.getElementById('status-message');
+        const checkPermsBtn = document.getElementById('check-perms-btn');
 
         // --- FIREBASE STATE ---
         let db;
         let auth;
-        let dataDocRef; // This single ref points to the doc holding config fields and subcollections
+        let dataDocRef;
         let questionsCollectionRef;
 
         // --- FIREBASE SETUP ---
@@ -170,12 +183,9 @@
                 auth = getAuth(app);
                 
                 const appId = 'alphabet-challenge-default';
-                // CORRECTED: Path now points to the 'data' document (4 segments)
                 dataDocRef = doc(db, 'artifacts', appId, 'public', 'data');
-                // CORRECTED: Questions collection is a subcollection of the data document
                 questionsCollectionRef = collection(dataDocRef, 'questions');
 
-                // Listen for auth state changes
                 onAuthStateChanged(auth, user => {
                     if (user) {
                         user.getIdTokenResult().then(idTokenResult => {
@@ -185,6 +195,8 @@
                                 loadAdminData();
                             } else {
                                 loginError.textContent = "You are not authorized to view this page.";
+                                // If they are logged in but not an admin, we shouldn't show the login form again.
+                                // Instead, we can show a logout button or just the error.
                             }
                         });
                     } else {
@@ -211,16 +223,25 @@
                 loginError.textContent = "Sign in failed. Check email and password.";
             }
         }
+
+        async function checkPermissions() {
+            const user = auth.currentUser;
+            if (user) {
+                const idTokenResult = await user.getIdTokenResult(true); // Force refresh
+                alert('Current user claims: ' + JSON.stringify(idTokenResult.claims));
+            } else {
+                alert('No user is currently signed in.');
+            }
+        }
         
         function loadAdminData() {
             loadConfig();
             loadQuestions();
         }
 
-        // --- DATA HANDLING FUNCTIONS ---
+        // --- DATA HANDLING FUNCTIONS (Unchanged from previous version) ---
         async function loadConfig() {
             try {
-                // Config fields are read from the main data document
                 const docSnap = await getDoc(dataDocRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -241,11 +262,11 @@
                 const querySnapshot = await getDocs(questionsCollectionRef);
                 if (querySnapshot.empty) {
                      questionList.innerHTML = `<p class="mb-4">No questions found in the database.</p>`;
-                     createQuestionsBtn.classList.remove('hidden'); // Show create button
+                     createQuestionsBtn.classList.remove('hidden'); 
                      return;
                 }
                 
-                createQuestionsBtn.classList.add('hidden'); // Hide create button if questions exist
+                createQuestionsBtn.classList.add('hidden');
                 let questions = [];
                 querySnapshot.forEach(doc => {
                     questions.push({ id: doc.id, ...doc.data() });
@@ -305,14 +326,14 @@
 
             const batch = writeBatch(db);
             defaultQuestions.forEach(q => {
-                const docRef = doc(questionsCollectionRef, q.letter); // Use the subcollection ref
+                const docRef = doc(questionsCollectionRef, q.letter);
                 batch.set(docRef, q);
             });
 
             try {
                 await batch.commit();
                 showStatusMessage('Initial questions created!');
-                loadQuestions(); // Reload the questions to display them
+                loadQuestions(); 
             } catch (error) {
                 console.error("Error creating initial questions:", error);
                 showStatusMessage('Error creating questions!', true);
@@ -323,7 +344,6 @@
 
         async function saveConfig() {
             try {
-                // Config fields are 'merged' into the main data document
                 await setDoc(dataDocRef, {
                     backgroundImage: backgroundInput.value,
                     welcomeMessage: messageInput.value
@@ -349,7 +369,7 @@
             });
 
             for (const id in updates) {
-                const docRef = doc(questionsCollectionRef, id); // Use the subcollection ref
+                const docRef = doc(questionsCollectionRef, id);
                 batch.update(docRef, updates[id]);
             }
 
@@ -374,6 +394,7 @@
         saveConfigBtn.addEventListener('click', saveConfig);
         saveQuestionsBtn.addEventListener('click', saveQuestions);
         createQuestionsBtn.addEventListener('click', createInitialQuestions);
+        checkPermsBtn.addEventListener('click', checkPermissions);
 
         // --- INITIALIZE ---
         setupFirebase();
