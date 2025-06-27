@@ -192,8 +192,7 @@
             
             <div id="leaderboard-container" class="mb-6 h-48 overflow-y-auto bg-black bg-opacity-20 rounded-lg p-2">
                 <ul id="leaderboard-list" class="text-left">
-                    <!-- Scores will be populated here -->
-                </ul>
+                    </ul>
             </div>
 
             <p class="text-md mb-2 text-slate-300">Enter your initials (3 letters):</p>
@@ -236,7 +235,7 @@
     <script type="module">
         // --- FIREBASE IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, onSnapshot, serverTimestamp, getDocs, getDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- DOM ELEMENTS ---
@@ -265,6 +264,7 @@
         let playerInitials = '';
         let db;
         let scoresCollection;
+        let baseDocRef; // Reference to the document holding config and subcollections
 
         // --- LOADING STATE ---
         let configLoaded = false;
@@ -273,7 +273,6 @@
         // --- FIREBASE SETUP ---
         async function setupFirebase() {
             try {
-                // ** FIX: Corrected the firebaseConfig object syntax. **
                 const firebaseConfig = {
                   apiKey: "AIzaSyASh75I7gFxlrbZvfX3RQ8uD8ynaAThFjI",
                   authDomain: "fftalphabet.firebaseapp.com",
@@ -284,32 +283,24 @@
                   measurementId: "G-Y0BLN9RTTR"
                 };
                 
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'alphabet-challenge-default';
-
-                if (!firebaseConfig.apiKey) {
-                    console.warn("Firebase config is missing. Leaderboard will not work.");
-                    leaderboardList.innerHTML = '<li>Leaderboard is disabled.</li>';
-                    startBtn.textContent = 'Game Error: No Config';
-                    return;
-                }
+                const appId = 'alphabet-challenge-default';
                 
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 const auth = getAuth(app);
                 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
+                await signInAnonymously(auth);
 
-                const basePath = `artifacts/alphabet-challenge-default/public/data`;
-                scoresCollection = collection(db, basePath, 'scores');
+                // CORRECTED: Path now points to the 'data' document (4 segments)
+                baseDocRef = doc(db, 'artifacts', appId, 'public', 'data');
+                
+                // Subcollections are relative to the base document reference
+                scoresCollection = collection(baseDocRef, 'scores');
                 
                 // Fetch all game data
                 fetchAndDisplayLeaderboard();
-                fetchGameConfig(basePath);
-                fetchQuestions(basePath);
+                fetchGameConfig();
+                fetchQuestions();
 
             } catch (error) {
                 console.error("Firebase initialization failed:", error);
@@ -318,10 +309,10 @@
         }
 
         // --- DATA FETCHING ---
-        async function fetchGameConfig(basePath) {
+        async function fetchGameConfig() {
             try {
-                const configRef = doc(db, basePath, 'config');
-                const docSnap = await getDoc(configRef);
+                // The config data is in the base document itself
+                const docSnap = await getDoc(baseDocRef);
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     if (data.backgroundImage) {
@@ -339,9 +330,10 @@
             }
         }
 
-        async function fetchQuestions(basePath) {
+        async function fetchQuestions() {
             try {
-                const questionsRef = collection(db, basePath, 'questions');
+                // The 'questions' collection is a subcollection of our base document
+                const questionsRef = collection(baseDocRef, 'questions');
                 const querySnapshot = await getDocs(questionsRef);
                 let fetchedQuestions = [];
                 querySnapshot.forEach(doc => {
@@ -371,7 +363,8 @@
             }
         }
 
-        // --- FUNCTIONS ---
+        // --- (The rest of the functions from your file remain unchanged) ---
+
         function createRosco() {
             roscoContainer.innerHTML = '';
             const radius = roscoContainer.offsetWidth / 2 - 30;
@@ -529,7 +522,6 @@
             });
         }
 
-        // --- EVENT LISTENERS ---
         initialsInput.addEventListener('input', () => {
             const value = initialsInput.value.trim();
             if (/^[a-zA-Z]{3}$/.test(value) && questionsLoaded && configLoaded) {
@@ -561,7 +553,6 @@
         
         // --- INITIALIZE ---
         setupFirebase();
-
     </script>
 </body>
 </html>
