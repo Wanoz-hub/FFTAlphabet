@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alphabet Challenge - Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=IM+Fell+English+SC&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* --- Final Fantasy Tactics Theme --- */
+        :root {
+            --fft-blue: #1a2c5a;
+            --fft-gold: #f7d88f;
+            --fft-light-gold: #fff4d5;
+            --fft-parchment: #f0e6d2;
+            --fft-dark-parchment: #d3c6ad;
+        }
+
+        body {
+            font-family: 'IM Fell English SC', serif;
+            background-color: #000;
+            background-image: url('https://www.transparenttextures.com/patterns/old-wall.png');
+            color: var(--fft-parchment);
+            padding: 2rem;
+        }
+        
+        .fft-border {
+            background-color: var(--fft-blue);
+            border: 2px solid var(--fft-gold);
+            box-shadow: 0 0 0 2px var(--fft-blue), inset 0 0 10px rgba(0,0,0,0.5);
+            border-radius: 8px;
+            padding: 1.5rem;
+        }
+        
+        .fft-title {
+            font-family: 'Cinzel', serif;
+            font-weight: 700;
+            color: var(--fft-gold);
+            text-shadow: 2px 2px 3px #000;
+        }
+
+        .fft-button {
+            background-color: var(--fft-blue);
+            border: 2px solid var(--fft-gold);
+            border-radius: 4px;
+            color: var(--fft-gold);
+            font-family: 'IM Fell English SC', serif;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .fft-button:hover:not(:disabled) {
+            background-color: var(--fft-gold);
+            color: var(--fft-blue);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1.1rem;
+            color: var(--fft-light-gold);
+        }
+
+        input[type="text"], textarea {
+            width: 100%;
+            font-family: 'IM Fell English SC', serif;
+            background-color: rgba(0,0,0,0.3);
+            color: var(--fft-parchment);
+            border: 2px solid var(--fft-dark-parchment);
+            border-radius: 4px;
+            padding: 0.5rem;
+        }
+        input[type="text"]:focus, textarea:focus {
+            outline: none;
+            border-color: var(--fft-gold);
+            box-shadow: 0 0 0 2px var(--fft-gold);
+        }
+
+        #status-message {
+            transition: opacity 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-4xl text-center mb-8 fft-title">Alphabet Challenge - Admin Panel</h1>
+
+        <!-- Game Configuration Section -->
+        <div class="fft-border mb-8">
+            <h2 class="text-2xl mb-4 fft-title">Game Configuration</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label for="background-input">Background Image URL</label>
+                    <input type="text" id="background-input" placeholder="https://...">
+                </div>
+                <div>
+                    <label for="message-input">Start Modal Message</label>
+                    <textarea id="message-input" rows="3" placeholder="Welcome, warrior..."></textarea>
+                </div>
+            </div>
+            <button id="save-config-btn" class="mt-4 py-2 px-5 text-lg fft-button">Save Configuration</button>
+        </div>
+
+        <!-- Question Editor Section -->
+        <div class="fft-border">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-2xl fft-title">Question Editor</h2>
+                <button id="save-questions-btn" class="py-2 px-5 text-lg fft-button">Save All Questions</button>
+            </div>
+            <div id="question-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-4 text-center">
+                <!-- Questions will be loaded here -->
+                <p id="loading-questions">Loading questions...</p>
+            </div>
+        </div>
+        
+        <!-- Status Message -->
+        <div id="status-message" class="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-4 rounded-lg shadow-lg opacity-0">
+            Saved successfully!
+        </div>
+
+    </div>
+
+    <script type="module">
+        // --- FIREBASE IMPORTS ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, getDoc, setDoc, getDocs, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- DOM ELEMENTS ---
+        const backgroundInput = document.getElementById('background-input');
+        const messageInput = document.getElementById('message-input');
+        const saveConfigBtn = document.getElementById('save-config-btn');
+        const questionList = document.getElementById('question-list');
+        const saveQuestionsBtn = document.getElementById('save-questions-btn');
+        const statusMessage = document.getElementById('status-message');
+
+        // --- FIREBASE STATE ---
+        let db;
+        let configRef;
+        let questionsCollectionRef;
+
+        // --- FIREBASE SETUP ---
+        async function setupFirebase() {
+            try {
+                // ** FIX: Added your actual Firebase configuration **
+                const firebaseConfig = {
+                  apiKey: "AIzaSyASh75I7gFxlrbZvfX3RQ8uD8ynaAThFjI",
+                  authDomain: "fftalphabet.firebaseapp.com",
+                  projectId: "fftalphabet",
+                  storageBucket: "fftalphabet.firebasestorage.app",
+                  messagingSenderId: "525111136630",
+                  appId: "1:525111136630:web:c829c9e7c021f0d8212a57",
+                  measurementId: "G-Y0BLN9RTTR"
+                };
+                
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'alphabet-challenge-default';
+                
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                const auth = getAuth(app);
+                
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+
+                // Define Firestore references
+                const basePath = `artifacts/${appId}/public`;
+                configRef = doc(db, basePath, 'data', 'config');
+                questionsCollectionRef = collection(db, basePath, 'data', 'questions');
+
+                // Load existing data
+                loadConfig();
+                loadQuestions();
+
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+                document.body.innerHTML = `<h1 class="fft-title text-center text-2xl">Firebase Connection Failed. Check console for errors.</h1>`;
+            }
+        }
+
+        // --- DATA HANDLING FUNCTIONS ---
+        async function loadConfig() {
+            const docSnap = await getDoc(configRef);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                backgroundInput.value = data.backgroundImage || '';
+                messageInput.value = data.welcomeMessage || '';
+            } else {
+                console.log("No config document found. You can create one by saving.");
+            }
+        }
+
+        async function loadQuestions() {
+            const querySnapshot = await getDocs(questionsCollectionRef);
+            
+            if (querySnapshot.empty) {
+                questionList.innerHTML = `
+                    <p class="mb-4">No questions found in the database.</p>
+                    <button id="create-questions-btn" class="py-2 px-5 text-lg fft-button">Create Initial Question Set</button>
+                `;
+                document.getElementById('create-questions-btn').addEventListener('click', createInitialQuestions);
+                return;
+            }
+
+            let questions = [];
+            querySnapshot.forEach(doc => {
+                questions.push({ id: doc.id, ...doc.data() });
+            });
+
+            questions.sort((a, b) => a.letter.localeCompare(b.letter));
+
+            questionList.innerHTML = ''; // Clear list
+
+            questions.forEach(q => {
+                const div = document.createElement('div');
+                div.className = 'grid grid-cols-1 md:grid-cols-[2rem_1fr_1fr] gap-4 items-center';
+                div.innerHTML = `
+                    <label class="text-2xl fft-title text-center">${q.letter.toUpperCase()}</label>
+                    <input type="text" data-id="${q.id}" data-field="question" value="${q.question}" placeholder="Question text...">
+                    <input type="text" data-id="${q.id}" data-field="answer" value="${q.answer}" placeholder="Answer...">
+                `;
+                questionList.appendChild(div);
+            });
+        }
+        
+        async function createInitialQuestions() {
+            const btn = document.getElementById('create-questions-btn');
+            btn.textContent = 'Creating...';
+            btn.disabled = true;
+
+            const defaultQuestions = [
+                { letter: 'a', question: 'STARTS WITH A: A fruit that is typically red or green.', answer: 'apple'},
+                { letter: 'b', question: 'STARTS WITH B: A yellow fruit monkeys love.', answer: 'banana'},
+                { letter: 'c', question: 'STARTS WITH C: A vehicle for transport.', answer: 'car'},
+                { letter: 'd', question: 'STARTS WITH D: A loyal pet.', answer: 'dog'},
+                { letter: 'e', question: 'STARTS WITH E: The planet we live on.', answer: 'earth'},
+                { letter: 'f', question: 'STARTS WITH F: What fire produces.', answer: 'flame'},
+                { letter: 'g', question: 'STARTS WITH G: The color of grass.', answer: 'green'},
+                { letter: 'h', question: 'STARTS WITH H: A place where people live.', answer: 'house'},
+                { letter: 'i', question: 'STARTS WITH I: A frozen dessert.', answer: 'ice cream'},
+                { letter: 'j', question: 'STARTS WITH J: A sweet fruit spread.', answer: 'jam'},
+                { letter: 'k', question: 'STARTS WITH K: Used to open a lock.', answer: 'key'},
+                { letter: 'l', question: 'STARTS WITH L: King of the jungle.', answer: 'lion'},
+                { letter: 'm', question: 'STARTS WITH M: Earth\'s natural satellite.', answer: 'moon'},
+                { letter: 'n', question: 'STARTS WITH N: Opposite of day.', answer: 'night'},
+                { letter: 'o', question: 'STARTS WITH O: A citrus fruit.', answer: 'orange'},
+                { letter: 'p', question: 'STARTS WITH P: A writing instrument.', answer: 'pen'},
+                { letter: 'q', question: 'STARTS WITH Q: A female monarch.', answer: 'queen'},
+                { letter: 'r', question: 'STARTS WITH R: Appears after a storm.', answer: 'rainbow'},
+                { letter: 's', question: 'STARTS WITH S: The star in our solar system.', answer: 'sun'},
+                { letter: 't', question: 'STARTS WITH T: A large woody plant.', answer: 'tree'},
+                { letter: 'u', question: 'STARTS WITH U: Used for rain protection.', answer: 'umbrella'},
+                { letter: 'v', question: 'STARTS WITH V: A stringed instrument.', answer: 'violin'},
+                { letter: 'w', question: 'STARTS WITH W: Essential liquid for life.', answer: 'water'},
+                { letter: 'x', question: 'CONTAINS X: A musical instrument with wooden bars.', answer: 'xylophone'},
+                { letter: 'y', question: 'STARTS WITH Y: The color of the sun.', answer: 'yellow'},
+                { letter: 'z', question: 'STARTS WITH Z: A striped African equine.', answer: 'zebra'}
+            ];
+
+            const batch = writeBatch(db);
+            defaultQuestions.forEach(q => {
+                const docRef = doc(questionsCollectionRef, q.letter);
+                batch.set(docRef, q);
+            });
+
+            try {
+                await batch.commit();
+                showStatusMessage('Initial questions created!');
+                loadQuestions(); // Reload the questions to display them
+            } catch (error) {
+                console.error("Error creating initial questions:", error);
+                showStatusMessage('Error creating questions!', true);
+                btn.textContent = 'Try Again';
+                btn.disabled = false;
+            }
+        }
+
+        async function saveConfig() {
+            try {
+                await setDoc(configRef, {
+                    backgroundImage: backgroundInput.value,
+                    welcomeMessage: messageInput.value
+                }, { merge: true });
+                showStatusMessage('Configuration saved!');
+            } catch (error) {
+                console.error("Error saving config:", error);
+                showStatusMessage('Error saving config!', true);
+            }
+        }
+
+        async function saveQuestions() {
+            const batch = writeBatch(db);
+            const inputs = questionList.querySelectorAll('input[type="text"]');
+            
+            let updates = {};
+
+            inputs.forEach(input => {
+                const id = input.dataset.id;
+                const field = input.dataset.field;
+                const value = input.value;
+
+                if (!updates[id]) {
+                    updates[id] = {};
+                }
+                updates[id][field] = value;
+            });
+
+            for (const id in updates) {
+                const docRef = doc(questionsCollectionRef, id);
+                batch.update(docRef, updates[id]);
+            }
+
+            try {
+                await batch.commit();
+                showStatusMessage('All questions saved!');
+            } catch (error) {
+                console.error("Error saving questions:", error);
+                showStatusMessage('Error saving questions!', true);
+            }
+        }
+
+        function showStatusMessage(message, isError = false) {
+            statusMessage.textContent = message;
+            statusMessage.style.backgroundColor = isError ? '#a83c32' : '#5a8a4d';
+            statusMessage.style.opacity = 1;
+
+            setTimeout(() => {
+                statusMessage.style.opacity = 0;
+            }, 3000);
+        }
+
+        // --- EVENT LISTENERS ---
+        saveConfigBtn.addEventListener('click', saveConfig);
+        saveQuestionsBtn.addEventListener('click', saveQuestions);
+
+        // --- INITIALIZE ---
+        setupFirebase();
+    </script>
+</body>
+</html>
